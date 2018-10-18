@@ -8,6 +8,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -33,11 +35,11 @@ type Media struct {
 }
 
 type Message struct {
-	JID       *string
-	Name      *string
-	Text      *string
-	MediaItem *int
-	Media     Media
+	JID      *string
+	Name     *string
+	Text     string
+	Media    string
+	MediaExt string
 }
 
 func NewApp(src, dst string) *App {
@@ -108,6 +110,7 @@ func (app *App) LoadMediaMap() {
 		err = rows.Scan(&hash, &path)
 		check("Scan 1", err)
 		hashMap[*path] = *hash
+		// fmt.Println(*path)
 	}
 
 	// Build Media Hash
@@ -123,8 +126,12 @@ func (app *App) LoadMediaMap() {
 		}
 		media := Media{}
 		media.Path = *path
-		media.Hash = hashMap[*path]
 		media.Ext = filepath.Ext(*path)
+		if path != nil && strings.HasPrefix(*path, "/") {
+			media.Hash = hashMap["Message"+*path]
+		} else {
+			media.Hash = hashMap["Message/"+*path]
+		}
 		app.MediaMap[id] = media
 	}
 }
@@ -146,39 +153,8 @@ func (app *App) GetSessions() ([]Session, error) {
 	return css, nil
 }
 
-// func (app *App) ExtractMedia(cid string) ([]Media, error) {
-// 	rows, err := app.ManifestDB.Query("SELECT fileID,relativePath FROM Files WHERE relativePath like 'Message/Media/966504469339@s.whatsapp.net/%' ")
-// 	if err != nil {
-// 		log.Println("Error:", err)
-// 		return nil, err
-// 	}
-// 	medias := []Media{}
-// 	media := Media{}
-// 	for rows.Next() {
-// 		if err := rows.Scan(&media.ID, &media.Path); err != nil {
-// 			log.Println("Error:", err)
-// 			return nil, err
-// 		}
-// 		media.Ext = filepath.Ext(media.Path)
-// 		medias = append(medias, media)
-// 	}
-// 	return medias, nil
-// }
-
-// func (app *App) CopyMedia(session Session, mediaList []Media) {
-// 	dstDir := fmt.Sprintf("%s/media/%s", app.DstDir, session.ID)
-// 	os.MkdirAll(dstDir, 0700)
-// 	for _, file := range mediaList {
-// 		if file.Ext == ".thumb" {
-// 			continue
-// 		}
-// 		src := fmt.Sprintf("%s/%s/%s", app.SrcDir, file.ID[:2], file.ID)
-// 		dst := fmt.Sprintf("%s/%s%s", dstDir, file.ID, file.Ext)
-// 		copyFile(src, dst)
-// 	}
-// }
-
 func (app *App) SessionMessages(session Session) []Message {
+	var err error
 	query := `
 	SELECT ZFROMJID, ZPUSHNAME, ZTEXT, ZMEDIAITEM
 	FROM ZWAMESSAGE
@@ -188,19 +164,36 @@ func (app *App) SessionMessages(session Session) []Message {
 	rows, err := app.ChatDB.Query(query, session.ID)
 	check("SessionMessages", err)
 
+	mediaBase := path.Join("media", strconv.Itoa(session.ID))
+	err = os.MkdirAll(path.Join(app.DstDir, mediaBase), 0700)
+	check("Makedir", err)
+
 	messages := []Message{}
 	for rows.Next() {
 		var msg Message
-		if err := rows.Scan(&msg.JID, &msg.Name, &msg.Text, &msg.MediaItem); err != nil {
+		var mediaID *int
+		var text *string
+		if err := rows.Scan(&msg.JID, &msg.Name, &text, &mediaID); err != nil {
 			log.Println("Error:", err)
 		}
-		EmptyString := "<nil>"
-		if msg.Text == nil {
-			msg.Text = &EmptyString
+		if text != nil {
+			msg.Text = *text
 		}
-		if msg.MediaItem != nil {
-			fmt.Println("Media:", *msg.MediaItem)
-			msg.Media = app.MediaMap[*msg.MediaItem]
+		if mediaID != nil {
+			media := app.MediaMap[*mediaID]
+			if media.Hash != "" {
+				mediaSrc := path.Join(app.SrcDir, media.Hash[:2], media.Hash)
+				mediaDst := path.Join(app.DstDir, mediaBase, fmt.Sprintf("%d%s", *mediaID, media.Ext))
+				if _, err := os.Stat(mediaDst); os.IsNotExist(err) {
+					_, err := copyFile(mediaSrc, mediaDst)
+					check("Copy media", err)
+				}
+				msg.Media = path.Join(mediaBase, fmt.Sprintf("%d%s", *mediaID, media.Ext))
+				msg.MediaExt = media.Ext
+			} else {
+				// VCARD maybe?
+				// log.Println(">", *mediaID, media)
+			}
 		}
 		messages = append(messages, msg)
 	}

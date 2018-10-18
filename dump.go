@@ -13,14 +13,14 @@ func (app *App) DumpSessions(css []Session) {
 	<h1>WhatsApp</h1>
 
 	{{range .}}
-		<a href="session_{{ .ID}}.html">{{ .Name}}</a><br>
+		<a href="session_{{ .ID}}.html" target="session">{{ .Name}}</a><br>
 	{{end}}
 	
 	`
 	t, err := template.New("foo").Parse(tpl)
 	check("DumpSessions template parsing", err)
 
-	out, err := os.Create(path.Join(app.DstDir, "index.html"))
+	out, err := os.Create(path.Join(app.DstDir, "sessions.html"))
 	check("DumpSessions creating file", err)
 	defer out.Close()
 
@@ -54,11 +54,18 @@ body {
 
 <div class="chat">
 {{range .}}	
-	{{ if .JID }}
-		<p class="message incoming">{{ nl2br .Text }}</p>
-	{{ else }}
-		<p class="message outgoing">{{ nl2br .Text }}</a>
-	{{ end }}
+	<p class="message {{if .JID}}incoming{{else}}outgoing{{end}}">
+		{{ nl2br .Text }}
+		{{ if eq .MediaExt ".jpg" }}
+			<img src="{{.Media}}">
+		{{ else if eq .MediaExt ".png" }}
+			<img src="{{.Media}}">
+		{{ else if eq .MediaExt ".mp4" }}
+			<video controls>
+				<source src="{{.Media}}" type="video/mp4">
+			</video>
+		{{end}}
+	</p>
 {{end}}
 </div><!-- chat -->
 	`
