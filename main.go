@@ -137,7 +137,7 @@ func (app *App) LoadMediaMap() {
 }
 
 func (app *App) GetSessions() ([]Session, error) {
-	query := "SELECT Z_PK, ZCONTACTJID, ZPARTNERNAME FROM ZWACHATSESSION"
+	query := "SELECT Z_PK, ZCONTACTJID, ZPARTNERNAME FROM ZWACHATSESSION ORDER BY ZLASTMESSAGEDATE DESC"
 	rows, err := app.ChatDB.Query(query)
 	check("GetSessions Query", err)
 
@@ -216,12 +216,15 @@ func main() {
 	check("GetSession", err)
 	app.DumpSessions(sessions)
 
+	counter := 0
 	for _, session := range sessions {
-		if session.ID > 5 {
-			continue
-		}
 		// Build Chat Session
+		fmt.Println("Building session:", session.ID, counter)
 		messages := app.SessionMessages(session)
 		app.DumpSession(session, messages)
+		counter++
+		if counter > 5 {
+			break
+		}
 	}
 }
