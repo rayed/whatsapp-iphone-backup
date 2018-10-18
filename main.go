@@ -219,7 +219,7 @@ func main() {
 	counter := 0
 	for _, session := range sessions {
 		// Build Chat Session
-		fmt.Println("Building session:", session.ID, counter)
+		fmt.Println("Building session:", session.ID, " : ", session.Name)
 		messages := app.SessionMessages(session)
 		app.DumpSession(session, messages)
 		counter++

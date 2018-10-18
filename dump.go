@@ -42,6 +42,8 @@ body {
 	margin: 5px;
 	padding: 8px;
 }
+.message img { max-width: 100%; display: block; }
+.message video { max-width: 100%; display: block; }
 .incoming {
 	background:white;
 }
