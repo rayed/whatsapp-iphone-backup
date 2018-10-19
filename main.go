@@ -59,7 +59,7 @@ func NewApp(src, dst string) *App {
 		check("Copy Manifest DB", err)
 	}
 	// Open Manifest DB
-	app.ManifestDB, err = sql.Open("sqlite3", fmt.Sprintf("file:%s?mode=ro", mainfestDstFile))
+	app.ManifestDB, err = sql.Open("sqlite3", fmt.Sprintf("file:%s?_journal=off", mainfestDstFile))
 	check("Opening Manifest DB", err)
 	err = app.ManifestDB.Ping()
 	check("Opening Manifest DB (ping)", err)
@@ -86,7 +86,7 @@ func NewApp(src, dst string) *App {
 		check("Copy Chat DB", err)
 	}
 	// Open ChatStorage
-	app.ChatDB, err = sql.Open("sqlite3", fmt.Sprintf("file:%s?mode=ro", chatDstFile))
+	app.ChatDB, err = sql.Open("sqlite3", fmt.Sprintf("file:%s?_journal=off", chatDstFile))
 	check("Opening ChatStorage DB", err)
 	err = app.ManifestDB.Ping()
 	check("Opening ChatStorage DB (ping)", err)
@@ -205,6 +205,7 @@ func main() {
 
 	srcPtr := flag.String("src", "src", "iPhone backup source directory")
 	dstPtr := flag.String("dst", "dst", "WhatsApp dump directory")
+	limitPtr := flag.Int("limit", 500, "Limit number of chats to export")
 	flag.Parse()
 
 	app := NewApp(*srcPtr, *dstPtr)
@@ -223,7 +224,7 @@ func main() {
 		messages := app.SessionMessages(session)
 		app.DumpSession(session, messages)
 		counter++
-		if counter > 5 {
+		if counter > *limitPtr {
 			break
 		}
 	}

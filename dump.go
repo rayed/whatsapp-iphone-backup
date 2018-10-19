@@ -3,12 +3,21 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"os"
 	"path"
 	"strings"
 )
 
 func (app *App) DumpSessions(css []Session) {
+	data := `
+<frameset cols="25%,*">
+	<frame src="sessions.html">
+	<frame name="session">
+</frameset>	
+	`
+	filename := path.Join(app.DstDir, "index.html")
+	ioutil.WriteFile(filename, []byte(data), 0600)
 	tpl := `
 	<h1>WhatsApp</h1>
 
