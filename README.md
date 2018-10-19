@@ -19,4 +19,4 @@ The ID part changes depend on your setup.
 
     go get github.com/mattn/go-sqlite3
     go build -o exporter *.go
-    ./exporter -dst "$HOME/whatsapp-backup" -src ""$HOME/Library/Application Support/MobileSync/Backup/XXXXX-XXXXX/"
+    ./exporter -dst "$HOME/whatsapp-backup" -src "$HOME/Library/Application Support/MobileSync/Backup/XXXXX-XXXXX/"
