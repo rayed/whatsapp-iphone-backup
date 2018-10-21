@@ -10,14 +10,18 @@ import (
 )
 
 func (app *App) DumpSessions(css []Session) {
+	// index.html
 	data := `
 <frameset cols="25%,*">
-	<frame src="sessions.html">
+	<frame src="sessions/index.html">
 	<frame name="session">
 </frameset>	
 	`
 	filename := path.Join(app.DstDir, "index.html")
 	ioutil.WriteFile(filename, []byte(data), 0600)
+	// mkdir sessions
+	os.Mkdir(path.Join(app.DstDir, "sessions"), 0700)
+	// sessions.html
 	tpl := `
 	<h1>WhatsApp</h1>
 
@@ -29,7 +33,7 @@ func (app *App) DumpSessions(css []Session) {
 	t, err := template.New("foo").Parse(tpl)
 	check("DumpSessions template parsing", err)
 
-	out, err := os.Create(path.Join(app.DstDir, "sessions.html"))
+	out, err := os.Create(path.Join(app.DstDir, "sessions", "index.html"))
 	check("DumpSessions creating file", err)
 	defer out.Close()
 
@@ -68,12 +72,12 @@ body {
 	<p class="message {{if .JID}}incoming{{else}}outgoing{{end}}">
 		{{ nl2br .Text }}
 		{{ if eq .MediaExt ".jpg" }}
-			<img src="{{.Media}}">
+			<img src="../{{.Media}}">
 		{{ else if eq .MediaExt ".png" }}
-			<img src="{{.Media}}">
+			<img src="../{{.Media}}">
 		{{ else if eq .MediaExt ".mp4" }}
 			<video controls>
-				<source src="{{.Media}}" type="video/mp4">
+				<source src="../{{.Media}}" type="video/mp4">
 			</video>
 		{{end}}
 	</p>
@@ -88,7 +92,7 @@ body {
 	t, err := template.New("foo").Funcs(funcs).Parse(tpl)
 	check("DumpSession template parsing", err)
 
-	out, err := os.Create(path.Join(app.DstDir, fmt.Sprintf("session_%d.html", session.ID)))
+	out, err := os.Create(path.Join(app.DstDir, "sessions", fmt.Sprintf("session_%d.html", session.ID)))
 	check("DumpSession creating file", err)
 	defer out.Close()
 

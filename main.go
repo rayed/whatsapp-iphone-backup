@@ -148,6 +148,9 @@ func (app *App) GetSessions() ([]Session, error) {
 			log.Println("Error:", err)
 			return nil, err
 		}
+		if strings.HasSuffix(cs.CID, "@status") {
+			continue
+		}
 		css = append(css, cs)
 	}
 	return css, nil
